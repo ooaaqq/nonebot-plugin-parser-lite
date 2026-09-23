@@ -19,24 +19,33 @@
     </body>
     <script defer>
         document.addEventListener("DOMContentLoaded", function() {
-            document
-                .querySelectorAll(".comment .single-image img")
-                .forEach((img) => {
-                    const applyStyle = () => {
-                        const h = img.offsetHeight;
-                        const w = img.offsetWidth;
-                        if (!h || !w || !isFinite(h / w)) return;
-                        const aspectRatio = h / w;
-                        if (aspectRatio >= 0.9) {
-                            // 竖图：限制宽度，放高
-                            img.classList.add("max-w-36", "h-auto");
-                        } else {
-                            // 横图：限制高度，放宽
-                            img.classList.add("max-h-36", "w-auto");
-                        }
-                    };
+            document.querySelectorAll(".comment .single-image img").forEach((img) => {
+                const applyStyle = () => {
+                    if (!img.naturalWidth || !img.naturalHeight) return;
+                    const aspectRatio = img.naturalHeight / img.naturalWidth;
+                    img.classList.remove(
+                        "w-full",
+                        "w-auto",
+                        "max-w-36",
+                        "max-h-36",
+                        "object-cover",
+                    );
+                    if (aspectRatio >= 0.9) {
+                        // 竖图：限制宽度，保持原比例自动计算高度
+                        img.classList.add("w-full", "max-w-36", "h-auto");
+                    } else {
+                        // 横图：限制高度，保持原比例自动计算宽度
+                        img.classList.add("w-auto", "max-h-36", "h-auto");
+                    }
+                    img.classList.add("object-contain");
+                };
+
+                if (img.complete) {
                     applyStyle();
-                });
+                } else {
+                    img.addEventListener("load", applyStyle, { once: true });
+                }
+            });
         });
     </script>
 </html>
