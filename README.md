@@ -274,6 +274,8 @@ plite_x_ck="auth_token=xxx"
 
 ## 🎨 渲染主题
 
+[**主题商店**](https://github.com/sokoko-org/nonebot-plugin-parser-themes)
+
 主题模板、清单格式、统一数据接口和本地主题目录配置见 [`THEME.md`](THEME.md)。主题可以放入插件数据目录下的 `themes`，或通过 `plite_theme_dirs` 指定外部目录。
 
 默认主题的 Tailwind 构建方式仍如下：
