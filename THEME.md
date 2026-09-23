@@ -1,7 +1,5 @@
 # 渲染主题
 
-渲染主题从解析器模型中解耦。主题模板只接收 `Theme API v1` 数据，不应调用 Python 对象方法、依赖内容类名，或自行下载资源。
-
 ## 安装目录
 
 插件会按以下顺序查找主题，前面的主题优先：
@@ -19,13 +17,14 @@
     ├── default.html.jinja
     ├── music.html.jinja
     ├── netease.html.jinja
-    ├── ....jinja
+    ├── name.html.jinja
     └── anyname.css
 ```
 
 主题清单：
 
 ```json
+// theme.json
 {
   "schema_version": 1,
   "id": "paper",
@@ -53,7 +52,6 @@ plite_render_theme="paper"
 plite_theme_dirs=[]
 ```
 
-主题模板是 Jinja/HTML。插件只加载上述本地目录中的主题文件，不负责联网下载或维护主题。
 
 ## Theme API v1
 
@@ -67,7 +65,7 @@ data.meta              = { bot_name, rendering_time, width }
 data.post              = 帖子数据
 ```
 
-传给模板的字符串已经在数据层统一按 HTML 转义，主题模板不需要也不应该再次使用 `|e`。渲染环境关闭 Jinja 自动转义，以便模板宏可以组合 HTML 片段。
+传给模板的字符串已经在数据层统一进行 HTML 转义，主题模板不需要也不应该再次使用 `|e` 等转义内容。
 
 `data.post`、`author`、`platform`、`stats`、`comments` 和 `repost` 都只包含字典、列表、标量和 `None`。头像、平台图标及媒体封面已经解析为可直接放入 `img` 的 URI；资源不可用时会使用占位图，非必需资源为 `None`。
 
