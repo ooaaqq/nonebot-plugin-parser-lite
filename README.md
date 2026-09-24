@@ -278,22 +278,6 @@ plite_x_ck="auth_token=xxx"
 
 主题模板、清单格式、统一数据接口和本地主题目录配置见 [`THEME.md`](THEME.md)。主题可以放入插件数据目录下的 `themes`，或通过 `plite_theme_dirs` 指定外部目录。
 
-默认主题的 Tailwind 构建方式仍如下：
-
-首次构建前安装 Tailwind CSS 开发依赖：
-
-```shell
-npm install
-```
-
-修改 `src/nonebot_plugin_parser_lite/render/templates` 下的 Jinja 模板后，重新生成静态样式表：
-
-```shell
-npm run build:css
-```
-
-脚本会自动输出样式文件到渲染目录
-
 ## 🎉 致谢
 
 <a href="https://github.com/sokoko-org/nonebot-plugin-parser-lite/graphs/contributors">
