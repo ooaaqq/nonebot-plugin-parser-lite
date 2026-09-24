@@ -742,13 +742,13 @@ live-icon
 
 ### 深浅色主题
 
-渲染时 `data.theme` 是 `light` 或 `dark`，同时 HTML 根节点带有 `data-theme` 属性
+渲染时 `data.theme` 是 `light` 或 `dark`
+
+主题可以自己注入这个变量，然后通过css改变颜色
 
 ```html
 <html data-theme="{{ data.theme }}"></html>
 ```
-
-主题可以使用如下代码改变颜色
 
 ```css
 :root {
