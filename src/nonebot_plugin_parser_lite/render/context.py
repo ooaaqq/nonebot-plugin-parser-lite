@@ -127,6 +127,7 @@ async def _serialize_result(
         "title": result.title,
         "url": result.url,
         "formatted_datetime": result.formatted_datetime,
+        "timestamp": result.timestamp,
         "extra": _json_value(result.extra),
         "platform": {
             "id": str(result.platform.name),
@@ -180,10 +181,7 @@ async def _serialize_comment(comment: Comment) -> dict[str, Any]:
 def _serialize_stats(stats: Stats) -> dict[str, Any]:
     extra: list[dict[str, Any]] = []
     for key, value in stats.extra.items():
-        if isinstance(value, list | tuple) and len(value) >= 2:
-            label, amount = value[0], value[1]
-        else:
-            label, amount = key, value
+        label, amount = value[0], value[1]
         extra.append(
             {"key": str(key), "label": _json_value(label), "value": _json_value(amount)}
         )

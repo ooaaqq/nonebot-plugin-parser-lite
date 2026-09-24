@@ -227,7 +227,7 @@ class Author:
         return None if self.avatar is None else await self.avatar
 
 
-StatExtra = tuple[str, Any]
+StatExtra = tuple[str, str | None]
 
 
 @dataclass(slots=True)

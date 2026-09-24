@@ -166,7 +166,6 @@ class WeiBoParser(BaseParser):
             cache_key=f"weibo:{fid}",
             ext_headers={"Referer": "https://weibo.com/"},
         )
-
         comments = []
         if pconfig.max_comments:
             try:
@@ -231,6 +230,7 @@ class WeiBoParser(BaseParser):
                 comment_count=play_info.comments_count,
                 share_count=play_info.reposts_count,
             ),
+            comments=comments,
             timestamp=play_info.real_date,
             url=f"https://h5.video.weibo.com/show/{fid}",
         )

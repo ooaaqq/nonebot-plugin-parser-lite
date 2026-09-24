@@ -66,10 +66,10 @@ def replace_placeholder_to_sticker(
     return result
 
 
-def format_num(num: int | None) -> str:
+def format_num(num: int | None) -> str | None:
     """将数字格式化为 1.2万 的形式"""
     if num is None:
-        return "-"
+        return None
     return str(num) if num < 10000 else f"{num / 10000:.1f}万"
 
 
