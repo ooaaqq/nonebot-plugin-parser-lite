@@ -787,12 +787,6 @@ body {
 
 ## 完整示例和主题库
 
-仓库根目录外的主题示例仓库包含
-
-- `pink-cute`：粉嫩可爱风
-- `minimal-mono`：极简黑白风
-- `hatsune-miku`：初音风格
-
 主题库地址：[sokoko-org/nonebot-plugin-parser-themes](https://github.com/sokoko-org/nonebot-plugin-parser-themes)
 
 `pink-cute`,`minimal-mono`,`hatsune-miku`这三个示例主题极其简单，不建议作为生产使用
