@@ -165,6 +165,11 @@ plite_bili_video_codes=["avc", "av01", "hev", "unknown"]
 # DOLBY(126), 8K(127)
 plite_bili_video_quality=80
 
+# [可选] B 站音频流音质上限，按选择优先级从低到高：
+# 64K(30216)、132K(30232)、192K(30280)、Hi-Res 无损(30251)、杜比全景声(30250)
+# 默认 30280，限制的是下载源流；单独请求音频时仍会转码为 MP3
+plite_bili_audio_quality=30280
+
 # [可选] B 站下载 CDN 地区；仅支持内置线路 zh、en、ja、proxy(网宿全网多线)
 plite_bili_cdn_region="zh"
 
