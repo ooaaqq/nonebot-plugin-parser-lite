@@ -261,10 +261,10 @@ def rewrite_bilibili_scheduler(root: Path) -> None:
     )
 
 
-def remove_rendering_runtime(root: Path) -> None:
+def remove_nonebot_runtime(root: Path) -> None:
     targets = (
         root / PACKAGE / "render",
-        root / PACKAGE / "utils/browser.py",
+        root / PACKAGE / "delivery.py",
     )
     for target in targets:
         if not target.exists() and not target.is_symlink():
@@ -273,7 +273,9 @@ def remove_rendering_runtime(root: Path) -> None:
             shutil.rmtree(target)
         else:
             target.unlink()
-        migration_log(f"移除独立版渲染运行时: {target.relative_to(root).as_posix()}")
+        migration_log(
+            f"移除独立版 NoneBot 运行时: {target.relative_to(root).as_posix()}"
+        )
 
 
 def rewrite_requirements(root: Path) -> list[str]:
@@ -359,7 +361,7 @@ def generate(root: Path) -> None:
     rewrite_config(root)
     rewrite_logging(root)
     rewrite_bilibili_scheduler(root)
-    remove_rendering_runtime(root)
+    remove_nonebot_runtime(root)
 
     replacements = {
         "package_init.py.tmpl": PACKAGE / "__init__.py",

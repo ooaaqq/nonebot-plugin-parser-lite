@@ -32,7 +32,10 @@ def static_checks(root: Path) -> None:
     package = root / "src/nonebot_plugin_parser_lite"
     errors: list[str] = [
         f"{path.relative_to(root)} is still present in the standalone tree"
-        for path in (package / "render", package / "utils/browser.py")
+        for path in (
+            package / "render",
+            package / "delivery.py",
+        )
         if path.exists() or path.is_symlink()
     ]
     generated_bilibili = package / "utils/bilibili/bilibili"
