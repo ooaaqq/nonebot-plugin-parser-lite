@@ -224,6 +224,10 @@ plite_summary_in_forward=False
 # 开启后仍保留视频封面，并在包含视频时强制使用合并转发
 plite_video_in_forward=False
 
+# 合并转发遇到明确的媒体上传错误时，只重发失败的分包：先省略视频并保留其他内容；
+# 若再次上传失败或没有视频，则将媒体替换为文字，仍以合并转发发送。
+# 降级消息会补上缺失的标题、作者和原链接，不受 plite_append_url 影响。
+
 # [可选] 是否开启懒下载模式，仅在用户请求时才下载视频
 plite_lazy_download=False
 
