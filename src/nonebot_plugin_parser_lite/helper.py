@@ -28,7 +28,7 @@ ForwardNodeInner = str | Segment | UniMessage
 
 
 def mark_media_role(segment: Segment, role: Literal["video", "summary"]) -> None:
-    """保留插件内的媒体来源；不写入适配器序列化的消息字段。"""
+    """保留插件内的媒体来源；不写入适配器序列化的消息字段"""
     setattr(segment, "_parser_lite_media_role", role)
 
 
