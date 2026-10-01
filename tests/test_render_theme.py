@@ -196,6 +196,7 @@ async def test_builtin_template_consumes_theme_data(monkeypatch):
                 "is_live": True,
             },
             {"type": "graphic", "src": placeholder, "alt": "说明"},
+            {"type": "graphic", "src": placeholder, "alt": None},
             {"type": "sticker", "src": None, "size": "small", "description": "表情"},
             {"type": "video", "src": placeholder, "duration": "1:00", "size": "1MB"},
             {"type": "audio", "duration": "0:30", "size": "2MB"},
@@ -250,3 +251,8 @@ async def test_builtin_template_consumes_theme_data(monkeypatch):
     assert 'alt="A"' in html
     assert "截止 2026-09-28 01:40" in html
     assert "[00:01.00]hello" in html
+    # graphic 的 alt 居中显示在图下，没有 alt 时不输出空段落
+    assert 'text-center text-xs text-slate-500 dark:text-slate-400">说明</p>' in html
+    assert 'alt="说明"' in html
+    assert ">None<" not in html
+    assert html.count("text-center text-xs text-slate-500") == 1

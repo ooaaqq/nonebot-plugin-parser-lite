@@ -296,7 +296,7 @@
             {% set _ = html_parts.append('<span class="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200">' ~ cont.text ~ '</span>') %}
         {% elif cont.type == 'graphic' %}
             {% set _ = flush_images() %}
-            {% set _ = html_parts.append('<div class="' ~ MEDIA_SHELL_CLASS ~ ' ' ~ (POSTER_MEDIA_CLASS if full_bleed else '') ~ ' mt-3 space-y-1"><img src="' ~ cont.src ~ '" alt="" class="' ~ MEDIA_GLOW_CLASS ~ '" /><div class="' ~ MEDIA_FOREGROUND_CLASS ~ ' ' ~ (POSTER_MASK_CLASS if full_bleed else '') ~ ' single-image relative overflow-hidden"><img src="' ~ cont.src ~ '" class="w-full h-auto object-cover" /></div><p class="whitespace-pre-wrap text-xs text-slate-500 dark:text-slate-400">' ~ (cont.alt|default('')) ~ '</p></div>') %}
+            {% set _ = html_parts.append('<div class="' ~ MEDIA_SHELL_CLASS ~ ' ' ~ (POSTER_MEDIA_CLASS if full_bleed else '') ~ ' mt-3 space-y-1"><img src="' ~ cont.src ~ '" alt="" class="' ~ MEDIA_GLOW_CLASS ~ '" /><div class="' ~ MEDIA_FOREGROUND_CLASS ~ ' ' ~ (POSTER_MASK_CLASS if full_bleed else '') ~ ' single-image relative overflow-hidden"><img src="' ~ cont.src ~ '" alt="' ~ (cont.alt or '') ~ '" class="w-full h-auto object-cover" /></div>' ~ ('<p class="whitespace-pre-wrap text-center text-xs text-slate-500 dark:text-slate-400">' ~ cont.alt ~ '</p>' if cont.alt else '') ~ '</div>') %}
         {% elif cont.type == 'sticker' %}
             {% set _ = html_parts.append('<img class="inline-block align-text-bottom ' ~ ('h-6' if cont.size == 'small' else 'h-12') ~ '"
                  src="' ~ cont.src ~ '"
