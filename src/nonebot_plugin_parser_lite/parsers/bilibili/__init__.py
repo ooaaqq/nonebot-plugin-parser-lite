@@ -574,8 +574,11 @@ class BilibiliParser(BaseParser):
         room_data = await room.get_room_info()
 
         description = BeautifulSoup(room_data.description, "html.parser")
-        replace_anchor_hrefs(description, "https://live.bilibili.com/")
-        description_text = html_to_text(description)
+        if description.find() is None:
+            description_text = room_data.description
+        else:
+            replace_anchor_hrefs(description, "https://live.bilibili.com/")
+            description_text = html_to_text(description)
 
         await self.raise_if_in_black_list(room_data.uid)
         content: list[ContentItem] = []
