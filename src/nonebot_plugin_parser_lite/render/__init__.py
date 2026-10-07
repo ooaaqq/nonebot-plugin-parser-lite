@@ -132,7 +132,7 @@ class _ForwardText:
 
     @property
     def prefix(self) -> str:
-        return f"{self.author_name}：" if self.include_author else ""
+        return f"作者：{self.author_name}\n" if self.include_author else ""
 
     @property
     def text(self) -> str:
@@ -501,7 +501,7 @@ class Renderer:
 
         规则：
         - 主帖：
-          - 文本片段按顺序聚合，输出 "作者：文本" 节点
+          - 文本片段按顺序聚合，作者信息独占一行，正文另起一行
           - 媒体片段（Image/Graphic/LivePhoto/Video 封面等）按出现顺序插入对应消息段
         - 如有转发：
           - 插入一条说明
