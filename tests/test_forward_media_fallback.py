@@ -18,7 +18,7 @@ from nonebot_plugin_alconna.uniseg import (
 import pytest
 from render_test_support import Renderer, UniHelper, make_result, pconfig
 
-from nonebot_plugin_parser_lite import delivery
+from nonebot_plugin_parser_lite import delivery, render
 from nonebot_plugin_parser_lite.delivery import (
     build_text_fallback,
     build_video_fallback,
@@ -379,7 +379,7 @@ async def test_non_media_error_in_video_fallback_stops(monkeypatch, error):
 
 @pytest.mark.asyncio
 async def test_split_video_fallback_does_not_resend_successful_packet(monkeypatch):
-    monkeypatch.setattr(delivery, "MAX_FORWARD_NODES", 2)
+    monkeypatch.setattr(render, "MAX_FORWARD_NODES", 2)
     message = forward(Video(raw=b"video"), Image(raw=b"cover"), "末尾正文")
     calls = []
 
@@ -426,3 +426,43 @@ async def test_third_media_error_is_terminal(monkeypatch):
         )
     assert len(calls) == 3
     text_of(calls[-1])
+
+
+@pytest.mark.parametrize("build", [build_video_fallback, build_text_fallback])
+def test_video_placeholder_has_no_surrounding_newlines(build):
+    packets = build(forward(Video(raw=b"video")), make_result())
+    assert packets[0][0].children[-1].content.extract_plain_text() == (
+        "[视频已省略，请通过原链接查看]"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "text",
+    ["正文\n\n", "第一段。\n第二段内容", "第一段文字\n第二段文字", "字" * 100],
+)
+async def test_fallback_text_uses_normal_split_and_pack_rules(monkeypatch, text):
+    monkeypatch.setattr(render, "SPLIT_THRESHOLD", 10)
+    monkeypatch.setattr(delivery, "SPLIT_THRESHOLD", 10)
+    monkeypatch.setattr(render, "MAX_FORWARD_NODES", 2)
+    monkeypatch.setattr(pconfig, "plite_need_forward_contents", True)
+    monkeypatch.setattr(
+        UniHelper, "construct_forward_message", lambda contents: forward(*contents)[0]
+    )
+    result = make_result()
+    result.content = [text]
+    normal = [packet async for packet in Renderer().send_content(result)]
+    normal_nodes = [node for packet in normal for node in packet[0].children]
+    # 输入与普通渲染相同的作者前缀，检查 fallback 新增说明之外的正文。
+    fallback = build_text_fallback(forward(f"tester：{text}", Video(raw=b"v")), result)
+    fallback_nodes = [node for packet in fallback for node in packet[0].children]
+    body = [
+        node.content.extract_plain_text()
+        for node in fallback_nodes
+        if not getattr(node, "_parser_lite_fallback_notice", False)
+    ]
+    assert body[:len(normal_nodes)] == [
+        node.content.extract_plain_text() for node in normal_nodes
+    ]
+    assert "".join(body[len(normal_nodes):]) == "[视频已省略，请通过原链接查看]"
+    assert all(len(packet[0].children) <= 2 for packet in normal + fallback)
