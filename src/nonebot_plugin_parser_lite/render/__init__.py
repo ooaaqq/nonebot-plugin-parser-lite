@@ -11,6 +11,7 @@ import uuid
 from anyio import Path
 from jinja2 import Environment, FileSystemLoader
 from nonebot import logger
+from nonebot_plugin_alconna.uniseg import Text
 from nonebot_plugin_htmlrender import get_new_page
 from PIL import Image
 
@@ -189,12 +190,38 @@ ForwardItem = TypeVar("ForwardItem")
 def split_forward_content(
     content: ForwardNodeInner | _ForwardText, max_len: int
 ) -> list[ForwardNodeInner]:
-    """沿用普通发送的拆分规则，混合图文保持为一个节点。"""
+    """按文字阈值拆分，混合消息保留各消息段的顺序。"""
     if isinstance(content, _ForwardText):
         return content.split(max_len)
-    if isinstance(content, str) and len(content) > max_len:
+    if isinstance(content, str):
         return split_text_by_length_with_punct(content, max_len)
-    return [content]
+    message = UniMessage(content)
+    if max_len <= 0 or len(message.extract_plain_text()) <= max_len:
+        return [content]
+
+    fragments: list[ForwardNodeInner] = []
+    fragment = UniMessage()
+    text_length = 0
+    for segment in message:
+        parts = (
+            [
+                Text(text)
+                for text in split_text_by_length_with_punct(segment.text, max_len)
+            ]
+            if isinstance(segment, Text)
+            else [segment]
+        )
+        for part in parts:
+            length = len(part.text) if isinstance(part, Text) else 0
+            if fragment and text_length + length > max_len:
+                fragments.append(fragment)
+                fragment = UniMessage()
+                text_length = 0
+            fragment.append(part)
+            text_length += length
+    if fragment:
+        fragments.append(fragment)
+    return fragments
 
 
 def pack_forward_items(
@@ -210,7 +237,7 @@ def pack_forward_items(
         if isinstance(content, str):
             content = content.rstrip("\n")
             item = with_content(item, content)
-        length = len(content) if isinstance(content, str) else 0
+        length = len(UniMessage(content).extract_plain_text())
         if chunk and (
             text_length + length > MAX_FORWARD_TEXT_LEN
             or len(chunk) >= MAX_FORWARD_NODES
