@@ -198,7 +198,7 @@ async def test_title_node_has_no_trailing_newline_in_forward(
     assert captured[0][0] == "标题"
     assert isinstance(captured[0][1], Image)
     assert isinstance(captured[0][2], Video)
-    assert captured[0][3] == "作者：tester\n正文\n\n   第二段\n\n\n第三段\naa"
+    assert captured[0][3] == "tester：正文\n\n   第二段\n\n\n第三段\naa"
 
 
 @pytest.mark.asyncio
@@ -214,6 +214,4 @@ async def test_title_is_separated_from_text_in_single_message(
     messages = [message async for message in Renderer().send_content(result)]
 
     assert len(messages) == 1
-    assert messages[0].extract_plain_text() == (
-        "标题\n作者：tester\n正文\n\n   第二段\ngg"
-    )
+    assert messages[0].extract_plain_text() == "标题\ntester：正文\n\n   第二段\ngg"
