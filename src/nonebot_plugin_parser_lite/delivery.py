@@ -108,46 +108,26 @@ def _fallback_media(
             content.append(deepcopy(thumbnail))
     if role != "summary":
         label = "视频" if is_video else _MEDIA_LABELS.get(segment.type, "媒体")
-        content.append(Text(f"[{label}已省略，请通过原链接查看]"))
+        content.append(Text(f"\n[{label}已省略，请通过原链接查看]\n"))
     return content, True, False
 
 
 def _fallback_node(
     node: CustomNode, *, video_only: bool
 ) -> tuple[CustomNode, bool, bool] | None:
-    parts_with_roles: list[tuple[Segment, bool]] = []
+    content = UniMessage()
     replaced_media = False
     has_summary = False
     for segment in UniMessage(node.content):
         if isinstance(segment, Text):
-            parts_with_roles.append((deepcopy(segment), False))
+            content.append(deepcopy(segment))
             continue
         if not isinstance(segment, Media):
             return None
         parts, replaced, summary = _fallback_media(segment, video_only=video_only)
-        parts_with_roles.extend(
-            (part, replaced and isinstance(part, Text)) for part in parts
-        )
+        content.extend(parts)
         replaced_media |= replaced
         has_summary |= summary
-
-    content = UniMessage()
-    previous_placeholder = False
-    for part, placeholder in parts_with_roles:
-        if isinstance(part, Text) and not part.text:
-            continue
-        if content and (placeholder or previous_placeholder):
-            previous = content[-1]
-            ends_with_newline = isinstance(previous, Text) and previous.text.endswith(
-                "\n"
-            )
-            starts_with_newline = isinstance(part, Text) and part.text.startswith(
-                ("\n", "\r\n")
-            )
-            if not ends_with_newline and not starts_with_newline:
-                content.append(Text("\n"))
-        content.append(part)
-        previous_placeholder = placeholder
     return replace(node, content=content), replaced_media, has_summary
 
 

@@ -229,14 +229,18 @@ def pack_forward_items(
     content_of: Callable[[ForwardItem], ForwardNodeInner],
     with_content: Callable[[ForwardItem, ForwardNodeInner], ForwardItem],
 ) -> Iterator[list[ForwardItem]]:
-    """共用普通发送的末尾换行处理、文本计数和节点分包规则。"""
+    """统一清理节点首尾换行，并按文本长度和节点数分包。"""
     chunk: list[ForwardItem] = []
     text_length = 0
     for item in items:
         content = content_of(item)
-        if isinstance(content, str):
-            content = content.rstrip("\n")
-            item = with_content(item, content)
+        if isinstance(content, str | UniMessage):
+            cleaned = content.strip("\n")
+            if not cleaned:
+                continue
+            if cleaned != content:
+                item = with_content(item, cleaned)
+            content = cleaned
         length = len(UniMessage(content).extract_plain_text())
         if chunk and (
             text_length + length > MAX_FORWARD_TEXT_LEN

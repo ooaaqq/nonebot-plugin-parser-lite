@@ -473,17 +473,17 @@ async def test_fallback_text_uses_normal_split_and_pack_rules(monkeypatch, text)
     ("before", "after", "expected"),
     [
         ("前文", "后文", "前文\n[视频已省略，请通过原链接查看]\n后文"),
-        ("前文\n", "\n后文", "前文\n[视频已省略，请通过原链接查看]\n后文"),
+        ("前文\n", "\n后文", "前文\n\n[视频已省略，请通过原链接查看]\n\n后文"),
         (
             "前文\n\n",
             "\n\n  后文",
-            "前文\n\n[视频已省略，请通过原链接查看]\n\n  后文",
+            "前文\n\n\n[视频已省略，请通过原链接查看]\n\n\n  后文",
         ),
         ("", "后文", "[视频已省略，请通过原链接查看]\n后文"),
         ("前文", "", "前文\n[视频已省略，请通过原链接查看]"),
     ],
 )
-def test_placeholder_separators_depend_on_adjacent_content(
+def test_placeholder_separators_preserve_internal_newlines(
     build, before, after, expected
 ):
     message = forward(UniMessage.text(before) + Video(raw=b"video") + after)
@@ -491,12 +491,12 @@ def test_placeholder_separators_depend_on_adjacent_content(
     assert packets[0][0].children[-1].content.extract_plain_text() == expected
 
 
-def test_adjacent_media_placeholders_have_one_separator():
+def test_adjacent_media_placeholders_preserve_internal_separator():
     packets = build_text_fallback(
         forward(UniMessage(Video(raw=b"v")) + Image(raw=b"i")), make_result()
     )
     assert packets[0][0].children[-1].content.extract_plain_text() == (
-        "[视频已省略，请通过原链接查看]\n[图片已省略，请通过原链接查看]"
+        "[视频已省略，请通过原链接查看]\n\n[图片已省略，请通过原链接查看]"
     )
 
 
@@ -542,3 +542,25 @@ async def test_normal_and_video_fallback_respect_mixed_text_limits(
             <= 30000
             for packet in packets
         )
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "\n\n  正文\n\n第二段\n\n",
+        UniMessage.text("\n\n  正文\n\n") + Image(raw=b"image") + "\n尾段\n\n",
+    ],
+)
+def test_shared_packing_strips_only_node_boundary_newlines(content):
+    original = deepcopy(content)
+    chunks = list(
+        render.pack_forward_items(
+            [content],
+            content_of=lambda item: item,
+            with_content=lambda _original, cleaned: cleaned,
+        )
+    )
+    text = UniMessage(chunks[0][0]).extract_plain_text()
+    assert text.startswith("  正文\n\n")
+    assert not text.endswith("\n")
+    assert content == original
