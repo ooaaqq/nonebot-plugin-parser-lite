@@ -17,6 +17,9 @@ from render_test_support import (
     pconfig,
 )
 
+from nonebot_plugin_parser_lite.download.task import DownloadTaskWrapper
+from nonebot_plugin_parser_lite.exception import DownloadException
+
 
 @pytest.fixture
 def fake_media_segments(monkeypatch):
@@ -43,6 +46,49 @@ def capture_forward_nodes(monkeypatch) -> list[list[ForwardNodeInner]]:
 
     monkeypatch.setattr(UniHelper, "construct_forward_message", construct)
     return captured
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("video_in_forward", [True, False])
+@pytest.mark.parametrize("with_summary", [True, False])
+async def test_failed_video_keeps_later_media_and_summary(
+    monkeypatch, fake_media_segments, video_in_forward, with_summary
+):
+    result = make_result()
+    failed_video = make_result().content[0]
+
+    async def fail():
+        raise DownloadException("HTTP 424")
+
+    failed_video.path_task = DownloadTaskWrapper(
+        func=fail, args=(), kwargs={}, url="https://cdn.example/failed.mp4"
+    )
+    result.content.insert(0, failed_video)
+    captured = capture_forward_nodes(monkeypatch)
+    summary = UniMessage([Text("summary")]) if with_summary else None
+    monkeypatch.setattr(pconfig, "plite_video_in_forward", video_in_forward)
+    monkeypatch.setattr(pconfig, "plite_need_forward_contents", True)
+    monkeypatch.setattr(pconfig, "plite_need_upload", False)
+    monkeypatch.setattr(pconfig, "plite_need_upload_video", False)
+
+    messages = [
+        message
+        async for message in Renderer().send_content(result, summary_node=summary)
+    ]
+
+    assert len(captured) == 1
+    if with_summary:
+        assert captured[0][0] is summary
+    segments = [
+        segment
+        for item in [*messages, *captured[0]]
+        for segment in (item if isinstance(item, UniMessage) else [item])
+    ]
+    assert any(isinstance(segment, Video) for segment in segments)
+    assert any(isinstance(segment, Image) for segment in segments)
+    assert "1 项媒体下载失败" in "".join(
+        message.extract_plain_text() for message in messages
+    )
 
 
 @pytest.mark.asyncio

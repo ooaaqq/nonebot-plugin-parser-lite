@@ -5,7 +5,7 @@ import sys
 from types import ModuleType, SimpleNamespace
 from typing import ClassVar
 
-from httpx import DecodingError, Request, Timeout
+from httpx import DecodingError, Request, Response, Timeout
 import pytest
 
 ROOT = Path(__file__).parents[1]
@@ -540,12 +540,16 @@ async def test_retryable_http_status_retries_primary_without_fallback(
 
 
 @pytest.mark.asyncio
-async def test_unlisted_http_status_is_not_retried(downloader_modules):
-    download, _, cache_manager = downloader_modules
-    client = FakeClient([FakeResponse(404)])
+@pytest.mark.parametrize("status", [403, 404, 422, 424, 500])
+async def test_unlisted_http_status_is_not_retried(downloader_modules, status):
+    download, client_module, cache_manager = downloader_modules
+    response = client_module.UniResponse(
+        Response(status, request=Request("GET", "https://cdn.example/missing.webp"))
+    )
+    client = FakeClient([response])
     downloader = _new_downloader(download, client)
 
-    with pytest.raises(RuntimeError, match="HTTP 404"):
+    with pytest.raises(download.DownloadException) as exc_info:
         await downloader.streamd(
             url="https://cdn.example/missing.webp",
             retry_http_statuses={503},
@@ -555,6 +559,40 @@ async def test_unlisted_http_status_is_not_retried(downloader_modules):
         )
 
     assert len(client.requests) == 1
+    assert isinstance(exc_info.value.__cause__, client_module.HTTPStatusError)
+    assert exc_info.value.__cause__.response is response
+    assert downloader._active_downloads == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [422, 424])
+@pytest.mark.parametrize("succeeds", [True, False])
+async def test_rednote_status_uses_backup_and_wraps_exhausted_retries(
+    downloader_modules, monkeypatch, status, succeeds
+):
+    download, client_module, _ = downloader_modules
+    primary = "https://primary.example/video.mp4"
+    backup = "https://backup.example/video.mp4"
+    error = client_module.UniResponse(Response(status, request=Request("GET", primary)))
+    success = FakeResponse(200, headers={"Content-Length": "5"}, chunks=[b"fresh"])
+    client = FakeClient([error, success] if succeeds else [error, error])
+    downloader = _new_downloader(download, client)
+    downloader.MAX_RETRIES = 1
+    monkeypatch.setattr(download.asyncio, "sleep", _no_sleep)
+    task = downloader.streamd(
+        url=primary, fallback_urls=[backup], retry_http_statuses={422, 424}
+    )
+
+    if succeeds:
+        assert await (await task).read_bytes() == b"fresh"
+    else:
+        with pytest.raises(download.DownloadException) as exc_info:
+            await task
+        assert isinstance(
+            exc_info.value.__cause__, client_module.RetryableDownloadError
+        )
+    assert [request["url"] for request in client.requests] == [primary, backup]
+    assert downloader._active_downloads == {}
 
 
 @pytest.mark.asyncio

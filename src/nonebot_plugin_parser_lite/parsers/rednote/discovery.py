@@ -7,9 +7,11 @@ from msgspec.json import Decoder
 
 from ...creator import Creator
 from ...data import ContentItem
+from ...download import DOWNLOADER
 from ...utils.format import replace_placeholder_to_sticker
 
 REDNOTE_PATTERN = re.compile(r"\[(?P<name>[^]]+[a-zA-Z])\]")
+REDNOTE_RETRYABLE_HTTP_STATUSES = frozenset({422, 424})
 
 
 class StreamUrl(Struct):
@@ -17,8 +19,8 @@ class StreamUrl(Struct):
 
     masterUrl: str
     """主链接"""
-    # backupUrls: list[str]
-    # """备选链接"""
+    backupUrls: list[str] = field(default_factory=list)
+    """同一视频流的备用链接"""
 
 
 class Stream(Struct):
@@ -30,21 +32,23 @@ class Stream(Struct):
     av1: list[StreamUrl] = field(default_factory=list)
 
     @property
+    def urls(self) -> list[str]:
+        """按 h264 > h265 > h266 > av1 选流，仅轮换同一流的地址以支持续传。"""
+        for stream_list in (self.h264, self.h265, self.h266, self.av1):
+            for stream in stream_list:
+                urls = list(
+                    dict.fromkeys(
+                        url for url in (stream.masterUrl, *stream.backupUrls) if url
+                    )
+                )
+                if urls:
+                    return urls
+        return []
+
+    @property
     def url(self) -> str:
-        """
-        获取第一个非空流列表中的第一个可用 URL
-
-        优先级: h264 > h265 > h266 > av1
-
-        约束：
-            按业务约定，至少会存在一个可用链接；
-            如无任何可用链接则抛出 ValueError
-        """
-        h264, h265, h266, av1 = self.h264, self.h265, self.h266, self.av1
-        for stream_list in (h264, h265, h266, av1):
-            if stream_list:
-                return stream_list[0].masterUrl
-        # 理论上不应达到此处，如到此处说明上游数据不符合约定
+        if urls := self.urls:
+            return urls[0]
         raise ValueError("Stream.url: no available stream url found")
 
 
@@ -67,6 +71,13 @@ class Video(Struct):
 
     capa: Capa
     consumer: Consumer
+    media: Media | None = None
+
+    @property
+    def urls(self) -> list[str]:
+        if self.media and (urls := self.media.stream.urls):
+            return urls
+        return [self.url]
 
     @property
     def url(self) -> str:
@@ -153,7 +164,12 @@ class NoteDetail(Struct):
         if self.video:
             items.append(
                 Creator.video(
-                    url_or_task=self.video.url,
+                    url_or_task=DOWNLOADER.download_video(
+                        url=self.video.urls[0],
+                        fallback_urls=self.video.urls[1:],
+                        retry_http_statuses=REDNOTE_RETRYABLE_HTTP_STATUSES,
+                        cache_key=f"rednote:{self.video.consumer.originVideoKey}",
+                    ),
                     cover_url=f"https://ci.xiaohongshu.com/{self.cover.fileId}?imageView2/2/w/1080/format/jpg",
                     duration=self.video.capa.duration,
                     cache_key=f"rednote:{self.video.consumer.originVideoKey}",
@@ -164,7 +180,15 @@ class NoteDetail(Struct):
                 if img.livePhoto:
                     items.append(
                         Creator.live_photo(
-                            video_url=img.stream.url,
+                            video_url=DOWNLOADER.download_video(
+                                url=img.stream.url,
+                                fallback_urls=img.stream.urls[1:],
+                                retry_http_statuses=REDNOTE_RETRYABLE_HTTP_STATUSES,
+                                cache_key=f"rednote:{img.fileId}"
+                                if img.fileId
+                                else None,
+                                cache_variant="motion" if img.fileId else None,
+                            ),
                             image_url=img.url,
                             cache_key=f"rednote:{img.fileId}" if img.fileId else None,
                         )
